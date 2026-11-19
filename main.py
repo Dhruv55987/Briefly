@@ -7,6 +7,7 @@ from core.transcriber import transcribe_all
 from core.summarize import summarize, generate_title
 from core.extractor import extract_action_items, extract_key_decisions, extract_questions
 from core.rag_engine import build_rag_chain, ask_question
+from core.youtube_transcript import fetch_youtube_transcript, is_youtube_url
 
 
 def run_pipeline(source: str, language: str = "english", progress_callback=None) -> dict:
@@ -19,13 +20,14 @@ def run_pipeline(source: str, language: str = "english", progress_callback=None)
         if progress_callback:
             progress_callback(message, percent)
 
-    report("Preparing audio", 8)
-
-    chunks = process_input(source)
-
-    report(f"Transcribing audio ({len(chunks)} chunk(s))", 28)
-    transcript = transcribe_all(chunks,language)
-    print(f"raw transcription (first 300 characters ) {transcript[:300]}")
+    if is_youtube_url(source) and os.getenv("SUPADATA_API_KEY"):
+        report("Retrieving YouTube captions", 28)
+        transcript = fetch_youtube_transcript(source)
+    else:
+        report("Preparing audio", 8)
+        chunks = process_input(source)
+        report(f"Transcribing audio ({len(chunks)} chunk(s))", 28)
+        transcript = transcribe_all(chunks, language)
 
     report("Generating title and summary", 55)
     title = generate_title(transcript)
