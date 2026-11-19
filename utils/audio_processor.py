@@ -25,13 +25,25 @@ def download_youtube_audio(url : str) -> str:
         "noplaylist": True,
         "postprocessor_args": ["-ac", "1", "-ar", "16000"],
     }
-    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-        info = ydl.extract_info(url, download=False)
-        limit = int(os.getenv("MAX_MEDIA_SECONDS", "0"))
-        if limit and (not info.get("duration") or info["duration"] > limit):
-            raise ValueError(f"Free demo supports videos up to {limit} seconds with a known duration")
-        info = ydl.extract_info(url, download=True)
-        filename = ydl.prepare_filename(info).replace(".webm", ".wav").replace(".m4a", ".wav")
+    try:
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            info = ydl.extract_info(url, download=False)
+            limit = int(os.getenv("MAX_MEDIA_SECONDS", "0"))
+            if limit and (not info.get("duration") or info["duration"] > limit):
+                raise ValueError(f"Free demo supports videos up to {limit} seconds with a known duration")
+            info = ydl.extract_info(url, download=True)
+            filename = ydl.prepare_filename(info).replace(".webm", ".wav").replace(".m4a", ".wav")
+    except yt_dlp.utils.DownloadError as exc:
+        detail = str(exc).lower()
+        if any(marker in detail for marker in (
+            "sign in to confirm", "not a bot", "confirm you're not a bot",
+        )):
+            raise ValueError(
+                "YouTube blocked this server's download and requires sign-in. "
+                "Choose Upload file and select an audio/video file you have access to "
+                "(up to 25 MB and 5 minutes). Whisper transcription has not started."
+            ) from exc
+        raise
     return filename
 
 
