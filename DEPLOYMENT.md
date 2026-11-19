@@ -2,7 +2,9 @@
 
 The frontend and FastAPI API run together at one public HTTPS URL. Render builds
 our Dockerfile, which installs Python dependencies, FFmpeg, ffprobe, and Deno.
-English audio is uploaded to Groq Whisper (`whisper-large-v3-turbo`). Summaries
+YouTube links fetch existing captions through the free `youtube-transcript-api`
+package, with no extra key or audio download. Uploaded English audio is sent
+to Groq Whisper (`whisper-large-v3-turbo`). Summaries
 and chat also use Groq. Hinglish translation uses Sarvam. No local model runs.
 
 ## 1. Test locally
@@ -20,7 +22,7 @@ valid `GROQ_API_KEY`. Only add `SARVAM_API_KEY` if you need Hinglish. Do not
 replace an existing `.env` with the blank example.
 
 Test a short English audio upload first, then the summary and chat. Test YouTube
-separately, since YouTube downloads can fail independently of transcription.
+separately, since YouTube caption access can fail independently of transcription.
 `ffmpeg -version` and `ffprobe -version` should both work in this terminal.
 
 ## 2. Create an empty GitHub repository
@@ -122,8 +124,9 @@ redeploys after changes reach the connected branch.
 - **Missing API key / 401:** correct the key in Render Environment and redeploy.
 - **429:** the transcription or text model quota was reached; wait for the quota
   window to reset and check your Groq account limits.
-- **YouTube error:** test an uploaded recording. Cloud IPs can face YouTube bot
-  checks or download restrictions even when uploads and Groq work.
+- **YouTube error:** test an uploaded recording. Cloud IPs can face YouTube IP
+  blocks even with the free transcript package. No YouTube API key is required;
+  uploaded-file transcription can work independently.
 - **Media too long:** this demo limits media to 300 seconds and uploads to 25 MB.
 - **Cold start:** Render Free sleeps after 15 idle minutes; waking can take about
   a minute. Free services have additional monthly usage limits.

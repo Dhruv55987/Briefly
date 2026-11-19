@@ -10,8 +10,10 @@ uvicorn[standard]
 python-multipart
 python-dotenv
 requests
+youtube-transcript-api==1.2.5
 
 # Audio ingestion; transcription uses hosted APIs via requests
+youtube-transcript-api==1.2.5
 yt-dlp[default]
 
 # Summaries, action items, decisions, and transcript chat via LangChain LCEL

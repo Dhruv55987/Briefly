@@ -20,7 +20,7 @@ def run_pipeline(source: str, language: str = "english", progress_callback=None)
         if progress_callback:
             progress_callback(message, percent)
 
-    if is_youtube_url(source) and os.getenv("SUPADATA_API_KEY"):
+    if is_youtube_url(source):
         report("Retrieving YouTube captions", 28)
         transcript = fetch_youtube_transcript(source)
     else:

@@ -1,12 +1,19 @@
-"""Fetch existing YouTube captions without downloading audio on the app server."""
+"""Free YouTube captions through the open-source youtube-transcript-api package."""
 import os
-import time
-from urllib.parse import urlparse
+import re
+from urllib.parse import parse_qs, urlparse
 
-import requests
+from requests import Session, RequestException
+from youtube_transcript_api import (
+    YouTubeTranscriptApi, CouldNotRetrieveTranscript, IpBlocked,
+    NoTranscriptFound, RequestBlocked, TranscriptsDisabled,
+)
 
 
-API_URL = "https://api.supadata.ai/v1/transcript"
+class _TimeoutSession(Session):
+    def request(self, method, url, **kwargs):
+        kwargs.setdefault("timeout", 20)
+        return super().request(method, url, **kwargs)
 
 
 def is_youtube_url(source: str) -> bool:
@@ -17,62 +24,57 @@ def is_youtube_url(source: str) -> bool:
     }
 
 
-def fetch_youtube_transcript(source: str) -> str:
+def extract_video_id(source: str) -> str:
     if not is_youtube_url(source):
         raise ValueError("Enter a valid YouTube URL")
-    api_key = os.getenv("SUPADATA_API_KEY", "").strip()
-    if not api_key:
-        raise RuntimeError("Set SUPADATA_API_KEY in the server environment to fetch YouTube captions")
-    headers = {"x-api-key": api_key}
-    response = requests.get(
-        API_URL,
-        headers=headers,
-        params={"url": source, "text": "false", "mode": "native", "lang": "en"},
-        timeout=30,
-    )
-    _check_response(response)
-    payload = response.json()
-    if response.status_code == 202:
-        job_id = payload.get("jobId")
-        if not isinstance(job_id, str) or not job_id or not all(
-            char.isalnum() or char == "-" for char in job_id
-        ):
-            raise RuntimeError("Transcript provider returned an invalid job ID")
-        deadline = time.monotonic() + 120
-        while time.monotonic() < deadline:
-            time.sleep(2)
-            response = requests.get(f"{API_URL}/{job_id}", headers=headers, timeout=15)
-            _check_response(response)
-            payload = response.json()
-            if payload.get("status") == "completed":
-                break
-            if payload.get("status") == "failed":
-                raise RuntimeError("YouTube captions could not be retrieved for this video")
-        else:
-            raise RuntimeError("YouTube captions took too long to retrieve. Try again later.")
+    parsed = urlparse(source)
+    parts = parsed.path.strip("/").split("/")
+    if parsed.hostname in {"youtu.be", "www.youtu.be"}:
+        video_id = parts[0]
+    elif parsed.path == "/watch":
+        video_id = parse_qs(parsed.query).get("v", [""])[0]
+    elif len(parts) == 2 and parts[0] in {"shorts", "embed", "live"}:
+        video_id = parts[1]
+    else:
+        video_id = ""
+    if not re.fullmatch(r"[A-Za-z0-9_-]{11}", video_id):
+        raise ValueError("Enter a YouTube video link, rather than a channel or playlist link")
+    return video_id
 
-    content = payload.get("content")
-    if not isinstance(content, list):
-        raise RuntimeError("Transcript provider returned invalid caption segments")
+
+def fetch_youtube_transcript(source: str) -> str:
+    video_id = extract_video_id(source)
+    try:
+        with _TimeoutSession() as session:
+            transcripts = YouTubeTranscriptApi(http_client=session).list(video_id)
+            try:
+                track = transcripts.find_transcript(["en", "en-US", "en-GB", "hi"])
+            except NoTranscriptFound:
+                track = next(iter(transcripts), None)
+            if track is None:
+                raise RuntimeError("No existing captions were found for this video")
+            if not track.language_code.startswith("en") and track.is_translatable:
+                track = track.translate("en")
+            segments = track.fetch()
+    except (RequestBlocked, IpBlocked) as exc:
+        raise RuntimeError(
+            "YouTube blocked transcript requests from this server's IP address. "
+            "The free transcript package cannot override this restriction. "
+            "Try running the app locally, or use Upload file."
+        ) from exc
+    except (TranscriptsDisabled, NoTranscriptFound) as exc:
+        raise RuntimeError("No accessible captions were found for this video") from exc
+    except CouldNotRetrieveTranscript as exc:
+        raise RuntimeError("YouTube captions could not be retrieved. The video may be unavailable or restricted.") from exc
+    except RequestException as exc:
+        raise RuntimeError("Could not connect to YouTube for captions. Try again later.") from exc
+
     limit = int(os.getenv("MAX_MEDIA_SECONDS", "0"))
-    if limit and any(
-        segment.get("offset", 0) + segment.get("duration", 0) > limit * 1000
-        for segment in content
-    ):
+    if limit and any(segment.start + segment.duration > limit for segment in segments):
         raise ValueError(f"Free demo supports captions up to {limit} seconds")
-    transcript = " ".join(segment.get("text", "").strip() for segment in content).strip()
+    transcript = " ".join(segment.text.strip() for segment in segments).strip()
     if not transcript:
         raise RuntimeError("No existing captions were found for this video")
     if len(transcript) > 50000:
         raise ValueError("Video transcript is too long for this demo")
     return transcript
-
-
-def _check_response(response) -> None:
-    if response.status_code in {401, 403}:
-        raise RuntimeError("The transcript API key is invalid or lacks access. Check SUPADATA_API_KEY.")
-    if response.status_code in {402, 429}:
-        raise RuntimeError("The transcript API quota was reached. Check your Supadata account limits.")
-    if response.status_code in {404, 422}:
-        raise RuntimeError("No accessible existing captions were found for this video")
-    response.raise_for_status()

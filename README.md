@@ -59,22 +59,26 @@ Install `pip install -r requirements-dev.txt`, then run
 `python -m unittest discover -s tests -v` for offline transcription and API smoke tests.
 Live transcription requires a valid Groq key, network access, and available API quota.
 
-## Paste YouTube links on Railway
+## Paste YouTube links
 
-Set `SUPADATA_API_KEY` in Railway > Briefly > briefly > Variables, then apply the
-change. Get a key from https://dash.supadata.ai. When configured, YouTube links
-use Supadata's existing captions directly, without a Railway audio download or
-Whisper call. Groq generates the summary and chat answers. Uploaded files still
-use Whisper for English and Sarvam for Hinglish.
+YouTube links use the free, MIT-licensed `youtube-transcript-api` package:
+https://github.com/jdepoix/youtube-transcript-api. No YouTube API key, Supadata
+account, audio download, or local model is needed for this path. Groq still
+requires `GROQ_API_KEY` to generate summaries and chat answers.
 
-Only existing captions are requested (`mode=native`); private videos and videos
-without accessible captions can fail. English captions are preferred; the API
-may return another available language. The language selector controls uploaded
-speech processing, not caption translation. No paid AI caption generation or
-translation is enabled. The current free Supadata plan includes 100 monthly
-credits; check https://supadata.ai/pricing for current terms.
+The app accepts watch, youtu.be, shorts, embed, and live video links. It prefers
+English captions, then Hindi or another available caption track, and requests
+YouTube's English translation when supported. Manually created and automatically
+generated captions are supported. Videos without accessible captions fail with
+an actionable message. Uploaded files still use Whisper/Sarvam.
 
-The demo checks caption timestamps against `MAX_MEDIA_SECONDS`, and limits
-transcripts to 50,000 characters. Without a Supadata key, YouTube uses the original
-download path and can still be blocked by YouTube. Never put an API key in GitHub
-or browser JavaScript. Restart/redeploy after changing environment variables.
+The package's documentation warns that YouTube blocks many cloud-provider IPs.
+Railway can therefore fail with RequestBlocked/IpBlocked even though this library
+is free and needs no key. Cookie authentication is not configured. The package
+cannot guarantee cloud access. The app reports this explicitly instead of silently
+trying another provider or paid proxy. No Supadata key is needed or used anymore.
+
+Caption timestamps are checked against `MAX_MEDIA_SECONDS`; transcripts are
+limited to 50,000 characters. Run `pip install -r requirements.txt` after pulling
+this change. The language selector applies to audio transcription; captions
+prefer English independently of that selection.
