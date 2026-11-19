@@ -1,0 +1,24 @@
+# AI meeting assistant
+# Suggested runtime: Python 3.11.
+# Install FFmpeg separately and make it available on PATH.
+# For YouTube downloads, install a supported JavaScript runtime such as Deno.
+# Set GROQ_API_KEY for the Groq integration.
+
+# Web API and browser UI
+fastapi
+uvicorn[standard]
+python-multipart
+python-dotenv
+requests
+
+# Audio ingestion; transcription uses hosted APIs via requests
+yt-dlp[default]
+
+# Summaries, action items, decisions, and transcript chat via LangChain LCEL
+langchain-core
+langchain-groq
+
+# Transcript chunking and keyword retrieval (no model downloads)
+langchain-text-splitters
+
+pydub

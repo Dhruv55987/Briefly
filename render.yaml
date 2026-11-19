@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: ai-video-assistant
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    plan: free
+    numInstances: 1
+    healthCheckPath: /health
+    envVars:
+      - key: GROQ_API_KEY
+        sync: false
+      - key: SARVAM_STT_MODEL
+        value: saaras:v2.5
+      - key: DOWNLOAD_DIR
+        value: /tmp/assistant-downloads
+      - key: MAX_MEDIA_SECONDS
+        value: "300"

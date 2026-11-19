@@ -1,0 +1,11 @@
+.env
+.env.*
+!.env.example
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+downloads/
+vector_db/
+.cache/
+.pytest_cache/
