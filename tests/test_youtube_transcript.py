@@ -75,9 +75,11 @@ class YouTubeCaptionTests(unittest.TestCase):
         with self.assertRaisesRegex(RuntimeError, "No accessible captions"):
             fetch_youtube_transcript(URL)
 
-    def test_caption_duration_limit(self):
-        self.track.fetch.return_value = [SimpleNamespace(text="Too long", start=300, duration=2)]
-        with self.assertRaisesRegex(ValueError, "300 seconds"):
+    def test_long_videos_use_text_size_limit_instead_of_audio_duration(self):
+        self.track.fetch.return_value = [SimpleNamespace(text="Long video captions", start=600, duration=2)]
+        self.assertEqual(fetch_youtube_transcript(URL), "Long video captions")
+        self.track.fetch.return_value = [SimpleNamespace(text="x"*50001, start=0, duration=2)]
+        with self.assertRaisesRegex(ValueError, "too long"):
             fetch_youtube_transcript(URL)
 
     def test_empty_captions_fail(self):

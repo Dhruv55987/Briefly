@@ -1,5 +1,4 @@
 """Free YouTube captions through the open-source youtube-transcript-api package."""
-import os
 import re
 from urllib.parse import parse_qs, urlparse
 
@@ -69,9 +68,6 @@ def fetch_youtube_transcript(source: str) -> str:
     except RequestException as exc:
         raise RuntimeError("Could not connect to YouTube for captions. Try again later.") from exc
 
-    limit = int(os.getenv("MAX_MEDIA_SECONDS", "0"))
-    if limit and any(segment.start + segment.duration > limit for segment in segments):
-        raise ValueError(f"Free demo supports captions up to {limit} seconds")
     transcript = " ".join(segment.text.strip() for segment in segments).strip()
     if not transcript:
         raise RuntimeError("No existing captions were found for this video")

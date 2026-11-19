@@ -127,7 +127,8 @@ redeploys after changes reach the connected branch.
 - **YouTube error:** test an uploaded recording. Cloud IPs can face YouTube IP
   blocks even with the free transcript package. No YouTube API key is required;
   uploaded-file transcription can work independently.
-- **Media too long:** this demo limits media to 300 seconds and uploads to 25 MB.
+- **Media too long:** uploaded media is limited to 300 seconds and 25 MB.
+  YouTube caption-only requests instead have a 50,000-character text limit.
 - **Cold start:** Render Free sleeps after 15 idle minutes; waking can take about
   a minute. Free services have additional monthly usage limits.
 - **Lost results:** jobs and chat chains live in memory. Uploads are on ephemeral

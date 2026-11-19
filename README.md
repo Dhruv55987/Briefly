@@ -78,7 +78,7 @@ is free and needs no key. Cookie authentication is not configured. The package
 cannot guarantee cloud access. The app reports this explicitly instead of silently
 trying another provider or paid proxy. No Supadata key is needed or used anymore.
 
-Caption timestamps are checked against `MAX_MEDIA_SECONDS`; transcripts are
-limited to 50,000 characters. Run `pip install -r requirements.txt` after pulling
+Caption-only YouTube links are limited to 50,000 transcript characters; they do
+not use the five-minute audio limit. Uploaded audio retains `MAX_MEDIA_SECONDS`. Run `pip install -r requirements.txt` after pulling
 this change. The language selector applies to audio transcription; captions
 prefer English independently of that selection.
